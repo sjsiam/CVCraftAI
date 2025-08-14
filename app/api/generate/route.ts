@@ -83,7 +83,7 @@ CREATIVE CV REQUIREMENTS:
 
 COVER LETTER REQUIREMENTS:
 - Professional business letter format
- - Include current date at the top
+ - Include this date: ${new Date().toLocaleDateString()} at the top
  - Include company address if provided
 - Address the recruiter by name if provided, otherwise use "Dear Hiring Manager"
 - Mention the company name and specific role
