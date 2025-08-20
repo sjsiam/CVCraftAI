@@ -204,7 +204,7 @@ export default function Builder() {
     const interval = setInterval(() => {
       setLoadingText(loadingMessages[messageIndex]);
       messageIndex = (messageIndex + 1) % loadingMessages.length;
-    }, 3000);
+    }, 3500);
 
     try {
       const response = await fetch("/api/generate", {
