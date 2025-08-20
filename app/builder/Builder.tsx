@@ -71,9 +71,16 @@ const CVTemplate = ({ content, title }: { content: string; title: string }) => (
 const CoverLetterTemplate = ({ content }: { content: string }) => (
   <div
     id="cover-letter"
+    style={{ width: "580px"}}
     className="bg-white min-h-[600px] shadow-lg rounded-lg overflow-hidden p-8"
   >
     <div
+      style={{
+        textAlign: "justify",
+        fontSize: "10.5pt",
+        lineHeight: "1.2",
+        fontFamily: "Times New Roman, serif"
+      }}
       className="max-w-none prose prose-lg"
       dangerouslySetInnerHTML={{ __html: content }}
     />
@@ -227,69 +234,46 @@ export default function Builder() {
     }
   };
 
-  const downloadPDF = async (
+  async function downloadPDF(
+    data: FormData,
     templateName: string,
     type: "cv" | "cover-letter" = "cv"
-  ) => {
+  ) {
     const elementId =
       type === "cv" ? `cv-${templateName.toLowerCase()}` : "cover-letter";
     const element = document.getElementById(elementId);
 
-    if (element) {
-      try {
-        // Create a temporary container with A4 dimensions
-        const tempContainer = document.createElement("div");
-        tempContainer.style.width = "210mm";
-        tempContainer.style.minHeight = "297mm";
-        tempContainer.style.padding = "20mm";
-        tempContainer.style.boxSizing = "border-box";
-        tempContainer.style.backgroundColor = "white";
-        tempContainer.style.position = "absolute";
-        tempContainer.style.left = "-9999px";
-        tempContainer.innerHTML = element.innerHTML;
-        document.body.appendChild(tempContainer);
-
-        const canvas = await html2canvas(element, {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: "#ffffff",
-          width: 794, // A4 width in pixels at 96 DPI
-          height: Math.max(1123, element.scrollHeight), // A4 height minimum
-        });
-
-        // Remove temporary container
-        document.body.removeChild(tempContainer);
-
-        const imgData = canvas.toDataURL("image/png");
-        const pdf = new jsPDF("p", "mm", "a4");
-        const imgWidth = 210;
-        const pageHeight = 297;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        let heightLeft = imgHeight;
-        let position = 0;
-
-        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-
-        while (heightLeft >= 0) {
-          position = heightLeft - imgHeight;
-          pdf.addPage();
-          pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-          heightLeft -= pageHeight;
-        }
-
-        const fileName =
-          type === "cv"
-            ? `cv-${templateName.toLowerCase()}.pdf`
-            : "cover-letter.pdf";
-        pdf.save(fileName);
-      } catch (error) {
-        console.error("Error generating PDF:", error);
-        alert("Error generating PDF. Please try again.");
-      }
+    if (!element) {
+      alert("Element not found!");
+      return;
     }
-  };
+
+    const pdf = new jsPDF("p", "pt", "a4");
+
+    try {
+      await pdf.html(element, {
+        callback: (doc) => {
+          const fileName =
+            type === "cv"
+              ? `cv-${templateName.toLowerCase()}.pdf`
+              : `${data.fullName.replace(/\s+/g, "_")}_Cover_Letter.pdf`;
+          doc.save(fileName);
+        },
+        html2canvas: {
+          scale: 1, // improves resolution
+          useCORS: true,
+        },
+        autoPaging: true,
+        x: 15,
+        y: 15,
+        width: 580, // width of the content
+        windowWidth: 600, // width of the viewport for rendering
+      });
+    } catch (error) {
+      console.error("PDF generation error:", error);
+      alert("Error generating PDF. Please try again.");
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
@@ -651,7 +635,9 @@ export default function Builder() {
                               Professional Template
                             </h3>
                             <Button
-                              onClick={() => downloadPDF("professional")}
+                              onClick={() =>
+                                downloadPDF(form.getValues(), "professional")
+                              }
                               className="bg-green-600 hover:bg-green-700 text-white"
                             >
                               <Download className="mr-2 h-4 w-4" />
@@ -672,7 +658,9 @@ export default function Builder() {
                               Concise Template
                             </h3>
                             <Button
-                              onClick={() => downloadPDF("concise")}
+                              onClick={() =>
+                                downloadPDF(form.getValues(), "concise")
+                              }
                               className="bg-green-600 hover:bg-green-700 text-white"
                             >
                               <Download className="mr-2 h-4 w-4" />
@@ -693,7 +681,9 @@ export default function Builder() {
                               Creative Template
                             </h3>
                             <Button
-                              onClick={() => downloadPDF("creative")}
+                              onClick={() =>
+                                downloadPDF(form.getValues(), "creative")
+                              }
                               className="bg-green-600 hover:bg-green-700 text-white"
                             >
                               <Download className="mr-2 h-4 w-4" />
@@ -715,7 +705,11 @@ export default function Builder() {
                             </h3>
                             <Button
                               onClick={() =>
-                                downloadPDF("cover-letter", "cover-letter")
+                                downloadPDF(
+                                  form.getValues(),
+                                  "cover-letter",
+                                  "cover-letter"
+                                )
                               }
                               className="bg-purple-600 hover:bg-purple-700 text-white"
                             >

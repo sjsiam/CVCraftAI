@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { NextRequest, NextResponse } from "next/server";
+import OpenAI from "openai";
 
 const dynamic = "force-dynamic";
 
@@ -10,7 +10,16 @@ const openai = new OpenAI({
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
-    
+
+    const date = new Date();
+
+    const options: Intl.DateTimeFormatOptions = {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    };
+    const formattedDate = date.toLocaleDateString("en-US", options);
+
     const prompt = `
 You are a professional CV writer, cover letter expert, and email communication specialist. Create comprehensive application materials based on the following information:
 
@@ -25,16 +34,18 @@ Professional Summary: ${data.summary}
 Education: ${data.education}
 Experience: ${data.experience}
 Skills: ${data.skills}
-Languages: ${data.languages || 'Not specified'}
-Achievements: ${data.achievements || 'Not specified'}
+Languages: ${data.languages || "Not specified"}
+Achievements: ${data.achievements || "Not specified"}
 Target Role: ${data.targetRole}
 
 Cover Letter Details:
-- Company Name: ${data.companyName || '[Company Name]'}
- - Company Address: ${data.companyAddress || '[Company Address]'}
-- Recruiter Name: ${data.recruiterName || '[Hiring Manager]'}
-- Recruiter Email: ${data.recruiterEmail || '[recruiter@company.com]'}
-- Job Circular: ${data.jobCircular || 'General application for ' + data.targetRole}
+- Company Name: ${data.companyName || "[Company Name]"}
+ - Company Address: ${data.companyAddress || "[Company Address]"}
+- Recruiter Name: ${data.recruiterName || "[Hiring Manager]"}
+- Recruiter Email: ${data.recruiterEmail || "[recruiter@company.com]"}
+- Job Circular: ${
+      data.jobCircular || "General application for " + data.targetRole
+    }
 
 Create 5 DISTINCTLY DIFFERENT items with unique designs and layouts:
 
@@ -83,15 +94,21 @@ CREATIVE CV REQUIREMENTS:
 
 COVER LETTER REQUIREMENTS:
 - Professional business letter format
- - Include this date: ${new Date().toLocaleDateString()} at the top
+ - Include this date: ${formattedDate} at the top
+ - Don't add the "Date:" prefix
  - Include company address if provided
-- Address the recruiter by name if provided, otherwise use "Dear Hiring Manager"
+- After these add some spacing
+- Address the recruiter by name if provided, otherwise use "Dear Hiring Manager" and it must be in bold
 - Mention the company name and specific role
 - Reference job requirements if circular is provided
 - Highlight relevant experience and skills
 - Professional closing with contact information
 - Use clean, readable formatting with proper spacing
 - Include date and addresses in proper business letter format
+- After every paragraph, add some spacing
+- When the body is done, add some more spacing and then add the Sincerely part.
+- Add every spacing using Inline CSS styles
+- Use proper font and size (Times New Roman, 10.5pt)
 
 EMAIL TEMPLATE REQUIREMENTS:
 - Professional subject line mentioning the position
@@ -124,21 +141,22 @@ Return the response as a JSON object with keys: professional, concise, creative,
       messages: [
         {
           role: "system",
-          content: "You are an expert CV writer, cover letter specialist, and professional communication expert who creates ATS-optimized resumes and compelling application materials. Always respond with valid JSON containing HTML-formatted content. Do not include any Markdown formatting, code blocks, backticks, or extra text."
+          content:
+            "You are an expert CV writer, cover letter specialist, and professional communication expert who creates ATS-optimized resumes and compelling application materials. Always respond with valid JSON containing HTML-formatted content. Do not include any Markdown formatting, code blocks, backticks, or extra text.",
         },
         {
           role: "user",
-          content: prompt
-        }
+          content: prompt,
+        },
       ],
       temperature: 0.7,
       max_tokens: 6000,
     });
 
     const response = completion.choices[0]?.message?.content;
-    
+
     if (!response) {
-      throw new Error('No response from OpenAI');
+      throw new Error("No response from OpenAI");
     }
 
     try {
@@ -218,27 +236,57 @@ Return the response as a JSON object with keys: professional, concise, creative,
         coverLetter: `
           <div style="padding: 40px; font-family: Arial, sans-serif; line-height: 1.6; color: #1f2937;">
             <div style="text-align: right; margin-bottom: 30px; font-size: 14px;">
-              <p style="margin: 0;">${new Date().toLocaleDateString()}</p>
+              <p style="margin: 0;">${formattedDate}</p>
             </div>
-            ${data.companyAddress ? `
+            ${
+              data.companyAddress
+                ? `
             <div style="margin-bottom: 30px;">
-              <p style="margin: 0; font-weight: bold;">${data.companyName || '[Company Name]'}</p>
+              <p style="margin: 0; font-weight: bold;">${
+                data.companyName || "[Company Name]"
+              }</p>
               <p style="margin: 5px 0 0 0;">${data.companyAddress}</p>
             </div>
-            ` : ''}
+            `
+                : ""
+            }
             <div style="margin-bottom: 30px;">
-              <p style="margin: 0; font-weight: bold;">${data.recruiterName || '[Hiring Manager]'}</p>
-              ${!data.companyAddress ? `<p style="margin: 5px 0 0 0;">${data.companyName || '[Company Name]'}</p>` : ''}
-              <p style="margin: 5px 0 0 0;">${data.recruiterEmail || '[recruiter@company.com]'}</p>
+              <p style="margin: 0; font-weight: bold;">${
+                data.recruiterName || "[Hiring Manager]"
+              }</p>
+              ${
+                !data.companyAddress
+                  ? `<p style="margin: 5px 0 0 0;">${
+                      data.companyName || "[Company Name]"
+                    }</p>`
+                  : ""
+              }
+              <p style="margin: 5px 0 0 0;">${
+                data.recruiterEmail || "[recruiter@company.com]"
+              }</p>
             </div>
-            <p style="margin-bottom: 20px;">Dear ${data.recruiterName || 'Hiring Manager'},</p>
-            <p style="margin-bottom: 15px;">I am writing to express my strong interest in the ${data.targetRole} position at ${data.companyName || '[Company Name]'}. With my background in ${data.jobTitle} and expertise in the technologies and skills you're seeking, I am confident I would be a valuable addition to your team.</p>
+            <p style="margin-bottom: 20px;">Dear ${
+              data.recruiterName || "Hiring Manager"
+            },</p>
+            <p style="margin-bottom: 15px;">I am writing to express my strong interest in the ${
+              data.targetRole
+            } position at ${
+          data.companyName || "[Company Name]"
+        }. With my background in ${
+          data.jobTitle
+        } and expertise in the technologies and skills you're seeking, I am confident I would be a valuable addition to your team.</p>
             <p style="margin-bottom: 15px;">${data.summary}</p>
-            <p style="margin-bottom: 15px;">My key qualifications include: ${data.skills}</p>
-            <p style="margin-bottom: 15px;">I am excited about the opportunity to contribute to ${data.companyName || '[Company Name]'} and would welcome the chance to discuss how my experience and passion align with your team's goals.</p>
+            <p style="margin-bottom: 15px;">My key qualifications include: ${
+              data.skills
+            }</p>
+            <p style="margin-bottom: 15px;">I am excited about the opportunity to contribute to ${
+              data.companyName || "[Company Name]"
+            } and would welcome the chance to discuss how my experience and passion align with your team's goals.</p>
             <p style="margin-bottom: 30px;">Thank you for your time and consideration. I look forward to hearing from you.</p>
             <p style="margin-bottom: 5px;">Sincerely,</p>
-            <p style="margin-bottom: 20px; font-weight: bold;">${data.fullName}</p>
+            <p style="margin-bottom: 20px; font-weight: bold;">${
+              data.fullName
+            }</p>
             <div style="font-size: 14px; color: #666;">
               <p style="margin: 0;">${data.email}</p>
               <p style="margin: 0;">${data.phone}</p>
@@ -248,29 +296,39 @@ Return the response as a JSON object with keys: professional, concise, creative,
         `,
         email: `
           <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1f2937;">
-            <p style="margin-bottom: 15px;"><strong>Subject:</strong> Application for ${data.targetRole} Position - ${data.fullName}</p>
-            <p style="margin-bottom: 15px;">Dear ${data.recruiterName || 'Hiring Manager'},</p>
-            <p style="margin-bottom: 15px;">I hope this email finds you well. I am writing to submit my application for the ${data.targetRole} position at ${data.companyName || '[Company Name]'}.</p>
+            <p style="margin-bottom: 15px;"><strong>Subject:</strong> Application for ${
+              data.targetRole
+            } Position - ${data.fullName}</p>
+            <p style="margin-bottom: 15px;">Dear ${
+              data.recruiterName || "Hiring Manager"
+            },</p>
+            <p style="margin-bottom: 15px;">I hope this email finds you well. I am writing to submit my application for the ${
+              data.targetRole
+            } position at ${data.companyName || "[Company Name]"}.</p>
             <p style="margin-bottom: 15px;">Please find attached my CV and cover letter for your review. I am excited about the opportunity to contribute to your team and would welcome the chance to discuss my qualifications further.</p>
             <p style="margin-bottom: 15px;">Thank you for your time and consideration.</p>
             <p style="margin-bottom: 5px;">Best regards,</p>
-            <p style="margin-bottom: 5px; font-weight: bold;">${data.fullName}</p>
+            <p style="margin-bottom: 5px; font-weight: bold;">${
+              data.fullName
+            }</p>
             <p style="margin-bottom: 5px;">${data.email}</p>
             <p style="margin-bottom: 5px;">${data.phone}</p>
             <p style="margin: 0;">${data.location}</p>
           </div>
-        `
+        `,
       };
-      
+
       return NextResponse.json(fallbackResponse);
     }
-
   } catch (error) {
-    console.error('Error generating content:', error);
-    
+    console.error("Error generating content:", error);
+
     // Return error response
     return NextResponse.json(
-      { error: 'Failed to generate content. Please check your OpenAI API key and try again.' },
+      {
+        error:
+          "Failed to generate content. Please check your OpenAI API key and try again.",
+      },
       { status: 500 }
     );
   }
